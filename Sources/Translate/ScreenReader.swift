@@ -27,6 +27,7 @@ enum ScreenReader {
         let deadline = Date().addingTimeInterval(selection ? 8 : 2.6)
         var raw: [TextBlock] = []
         var budget = 8000
+        appendDock(screen: bounded ? screen : nil, selection: selection, into: &raw)
         let popups = popupWindows()
         for window in popups {
             guard Date() <= deadline, budget > 0, raw.count < 700 else { break }
@@ -53,6 +54,9 @@ enum ScreenReader {
                 )
             }
         }
+        if selection && bounded && raw.isEmpty {
+            sample(selection: screen, into: &raw)
+        }
         let merged = LineMerger.merge(raw, gap: 32)
         let onScreen = bounded ? merged.filter { block in
             if selection { return screen.intersects(block.bounds) }
@@ -78,6 +82,7 @@ enum ScreenReader {
         let app = AXUIElementCreateApplication(pid)
         AXUIElementSetMessagingTimeout(app, 0.6)
         AXUIElementSetAttributeValue(app, "AXManualAccessibility" as CFString, kCFBooleanTrue)
+        appendMenuBar(app, pid: pid, screen: screen, selection: selection, into: &raw)
         var axWindows = copyWindows(app)
         if let screen {
             axWindows = axWindows.filter { element in
@@ -105,6 +110,56 @@ enum ScreenReader {
         for (element, window) in matched {
             guard Date() <= deadline, budget > 0, raw.count < 700 else { return }
             walk(element, pid: pid, anchor: window, windows: windows, screen: selection ? screen : nil, overlay: false, selection: selection, deadline: deadline, into: &raw, budget: &budget, depth: 0)
+        }
+    }
+
+    private static func appendDock(screen: CGRect?, selection: Bool, into raw: inout [TextBlock]) {
+        guard let dock = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.dock").first else { return }
+        let app = AXUIElementCreateApplication(dock.processIdentifier)
+        AXUIElementSetMessagingTimeout(app, 0.3)
+        for child in copyChildren(app) {
+            appendDockItems(child, screen: screen, selection: selection, into: &raw, depth: 0)
+        }
+    }
+
+    private static func appendDockItems(
+        _ element: AXUIElement,
+        screen: CGRect?,
+        selection: Bool,
+        into raw: inout [TextBlock],
+        depth: Int
+    ) {
+        if depth > 5 || raw.count >= 700 { return }
+        if copyString(element, kAXRoleAttribute) == "AXDockItem",
+           let text = readableText(element),
+           let frame = copyFrame(element),
+           onScreen(frame, screen: screen, selection: selection) {
+            raw.append(TextBlock(text: text, bounds: frame))
+        }
+        for child in copyChildren(element) {
+            appendDockItems(child, screen: screen, selection: selection, into: &raw, depth: depth + 1)
+        }
+    }
+
+    private static func appendMenuBar(
+        _ app: AXUIElement,
+        pid: pid_t,
+        screen: CGRect?,
+        selection: Bool,
+        into raw: inout [TextBlock]
+    ) {
+        guard NSRunningApplication(processIdentifier: pid)?.isActive == true else { return }
+        var value: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(app, kAXMenuBarAttribute as CFString, &value) == .success,
+              let value,
+              CFGetTypeID(value) == AXUIElementGetTypeID() else { return }
+        let bar = value as! AXUIElement
+        for child in copyChildren(bar) {
+            guard copyString(child, kAXRoleAttribute) == kAXMenuBarItemRole,
+                  let text = readableText(child),
+                  let frame = copyFrame(child),
+                  onScreen(frame, screen: screen, selection: selection) else { continue }
+            raw.append(TextBlock(text: text, bounds: frame))
         }
     }
 
@@ -209,12 +264,16 @@ enum ScreenReader {
         let role = copyString(element, kAXRoleAttribute) ?? ""
         if role == kAXMenuBarRole || role == "AXMenuBar" { return }
         let children = copyChildren(element)
-        let childHasText = children.contains { readableText($0) != nil }
-        if !childHasText, let text = readableText(element), let frame = copyFrame(element), frame.width >= 8, frame.height >= 8 {
+        let childHasText = children.contains { childSuppliesText($0) }
+        if !childHasText, let text = readableText(element), let frame = selectionFrame(element, text: text, stored: copyFrame(element), selection: selection ? screen : nil), frame.width >= 8, frame.height >= 8 {
             let shown = overlay ? onScreen(frame, screen: screen, selection: selection) : isVisible(frame, pid: pid, anchor: anchor, windows: windows)
-            let chosen = !selection || screen == nil || screen!.intersects(frame)
+            let chosen = !selection || screen == nil || selectionHits(element, frame: frame, selection: screen)
             if shown && chosen {
-                raw.append(TextBlock(text: text, bounds: frame))
+                if let screen, selection, !screen.contains(frame) {
+                    raw.append(contentsOf: wordsInside(screen, element: element, fallback: text, frame: frame))
+                } else {
+                    raw.append(TextBlock(text: text, bounds: frame))
+                }
             }
         }
         for child in children {
@@ -411,33 +470,187 @@ enum ScreenReader {
     }
 
     private static func readableText(_ element: AXUIElement) -> String? {
+        guard let raw = rawReadable(element) else { return nil }
+        let text = normalizeScreenText(raw)
+        return text.contains(where: { $0.isLetter }) ? text : nil
+    }
+
+    private static func rawReadable(_ element: AXUIElement) -> String? {
+        elementString(element)
+    }
+
+    private static func childSuppliesText(_ element: AXUIElement) -> Bool {
         let role = copyString(element, kAXRoleAttribute) ?? ""
-        let values: [String?]
         switch role {
-        case kAXStaticTextRole, "AXHeading", "AXLink", "AXUnknown":
-            values = [
-                copyString(element, kAXValueAttribute),
-                copyString(element, kAXTitleAttribute),
-                copyString(element, kAXDescriptionAttribute),
-            ]
-        case kAXTextFieldRole, kAXTextAreaRole, "AXSearchField", "AXComboBox":
-            values = [copyString(element, kAXValueAttribute)]
-        case kAXButtonRole, kAXCheckBoxRole, kAXRadioButtonRole, kAXPopUpButtonRole, "AXMenuButton", kAXMenuItemRole, "AXCell", "AXRow":
-            values = [
-                copyString(element, kAXTitleAttribute),
-                copyString(element, kAXValueAttribute),
-                copyString(element, kAXDescriptionAttribute),
-            ]
+        case kAXStaticTextRole, "AXHeading", "AXLink", kAXTextFieldRole, kAXTextAreaRole, "AXSearchField", "AXComboBox":
+            return readableText(element) != nil
         default:
-            return nil
+            return false
         }
-        for value in values {
-            let text = normalizeScreenText(value ?? "")
-            if text.contains(where: { $0.isLetter }) {
-                return text
-            }
+    }
+
+    private static func selectionHits(_ element: AXUIElement, frame: CGRect, selection: CGRect?) -> Bool {
+        guard let selection else { return true }
+        if selection.intersects(frame) { return true }
+        guard let raw = elementString(element) else { return false }
+        let length = (raw as NSString).length
+        guard length > 0, length <= 4000 else { return false }
+        guard case .rect(let rect) = rangeBounds(element, NSRange(location: 0, length: length)) else { return false }
+        return selection.intersects(rect)
+    }
+
+    private static func elementString(_ element: AXUIElement) -> String? {
+        if isSecure(element) { return nil }
+        let role = copyString(element, kAXRoleAttribute) ?? ""
+        if structuralRole(role) { return nil }
+        if let frame = copyFrame(element), obscuresText(role, frame) { return nil }
+        let names = textEntryRole(role)
+            ? [kAXValueAttribute, "AXPlaceholderValue", kAXTitleAttribute, kAXDescriptionAttribute, "AXAttributedDescription"]
+            : [kAXTitleAttribute, kAXValueAttribute, kAXDescriptionAttribute, "AXAttributedDescription", "AXValueDescription", "AXPlaceholderValue", "AXLabel"]
+        for name in names {
+            guard let text = copyString(element, name), text.contains(where: { $0.isLetter }) else { continue }
+            return text
         }
         return nil
+    }
+
+    private static func textEntryRole(_ role: String) -> Bool {
+        role == kAXTextFieldRole || role == kAXTextAreaRole || role == "AXSearchField" || role == "AXComboBox"
+    }
+
+    private static func structuralRole(_ role: String) -> Bool {
+        switch role {
+        case "AXWindow", "AXApplication", "AXScrollArea", "AXSplitGroup", "AXWebArea", "AXScrollBar", "AXLayoutArea", "AXList", "AXTable", "AXOutline", "AXBrowser", kAXMenuBarRole, "AXMenuBar":
+            return true
+        default:
+            return false
+        }
+    }
+
+    private static func obscuresText(_ role: String, _ frame: CGRect) -> Bool {
+        if role == "AXGroup" || role == "AXToolbar" || role == "AXTabGroup" || role == "AXSheet" || role == "AXPopover" {
+            return frame.height > 100
+        }
+        if role == "AXImage" {
+            return frame.width > 360 || frame.height > 160
+        }
+        return false
+    }
+
+    private static func wordsInside(_ selection: CGRect, element: AXUIElement, fallback: String, frame: CGRect) -> [TextBlock] {
+        guard let raw = rawReadable(element) else { return [] }
+        let tokens = wordTokens(raw)
+        guard let first = tokens.first else { return [] }
+        if tokens.count == 1 {
+            if case .rect(let rect) = rangeBounds(element, first.range), hits(rect, selection) {
+                return [TextBlock(text: fallback, bounds: rect)]
+            }
+            let center = CGPoint(x: frame.midX, y: frame.midY)
+            return selection.contains(center) ? [TextBlock(text: fallback, bounds: frame)] : []
+        }
+        if case .unsupported = rangeBounds(element, first.range) {
+            return estimatedWords(inside: selection, raw: raw, frame: frame)
+        }
+        var chosen: [(String, CGRect, Int)] = []
+        for (index, token) in tokens.enumerated() {
+            guard case .rect(let rect) = rangeBounds(element, token.range), hits(rect, selection) else { continue }
+            let word = normalizeScreenText(token.text)
+            if word.contains(where: { $0.isLetter }) {
+                chosen.append((word, rect, index))
+            }
+        }
+        return runs(chosen)
+    }
+
+    private static func hits(_ word: CGRect, _ selection: CGRect) -> Bool {
+        let hit = selection.intersection(word)
+        if hit.isNull || hit.isEmpty { return false }
+        if selection.contains(CGPoint(x: word.midX, y: word.midY)) { return true }
+        if hit.width * hit.height >= word.width * word.height * 0.45 { return true }
+        return hit.height >= word.height * 0.3 && hit.width >= 6
+    }
+
+    private static func selectionFrame(_ element: AXUIElement, text: String, stored: CGRect?, selection: CGRect?) -> CGRect? {
+        if let stored, stored.width >= 8, stored.height >= 8 { return stored }
+        guard let selection else { return nil }
+        let length = (text as NSString).length
+        guard length > 0, length <= 4000 else { return nil }
+        guard case .rect(let rect) = rangeBounds(element, NSRange(location: 0, length: length)) else { return nil }
+        guard rect.width >= 8, rect.height >= 8, selection.intersects(rect) else { return nil }
+        return rect
+    }
+
+    private static func sample(selection: CGRect, into raw: inout [TextBlock]) {
+        var seen = Set<Int>()
+        let rows = min(36, max(1, Int(selection.height / 18)))
+        let cols = min(8, max(1, Int(selection.width / 48)))
+        for row in 0..<rows {
+            let y = selection.minY + (CGFloat(row) + 0.5) * selection.height / CGFloat(rows)
+            for col in 0..<cols {
+                let point = CGPoint(
+                    x: selection.minX + (CGFloat(col) + 0.5) * selection.width / CGFloat(cols),
+                    y: y
+                )
+                guard let element = textElement(containing: point) else { continue }
+                let key = Int(CFHash(element))
+                if !seen.insert(key).inserted { continue }
+                guard let text = readableText(element) ?? wordString(element) else { continue }
+                guard let frame = selectionFrame(element, text: text, stored: copyFrame(element), selection: selection) else { continue }
+                guard frame.width >= 8, frame.height >= 8, selection.intersects(frame) else { continue }
+                if selection.contains(frame) {
+                    raw.append(TextBlock(text: text, bounds: frame))
+                } else {
+                    raw.append(contentsOf: wordsInside(selection, element: element, fallback: text, frame: frame))
+                }
+            }
+        }
+    }
+
+    private static func estimatedWords(inside selection: CGRect, raw: String, frame: CGRect) -> [TextBlock] {
+        let tokens = wordTokens(raw)
+        let font = NSFont.systemFont(ofSize: max(11, min(16, frame.height * 0.34)))
+        let attributes: [NSAttributedString.Key: Any] = [.font: font]
+        let lineHeight = max(font.ascender - font.descender + font.leading, 12)
+        var x = frame.minX
+        var y = frame.minY
+        var chosen: [(String, CGRect, Int)] = []
+        for (index, token) in tokens.enumerated() {
+            let width = max((token.text as NSString).size(withAttributes: attributes).width, 4)
+            if x > frame.minX && x + width > frame.maxX + 1 {
+                x = frame.minX
+                y += lineHeight
+            }
+            let rect = CGRect(x: x, y: y, width: width, height: lineHeight)
+            if hits(rect, selection) {
+                let word = normalizeScreenText(token.text)
+                if word.contains(where: { $0.isLetter }) {
+                    chosen.append((word, rect, index))
+                }
+            }
+            x += width + 4
+        }
+        return runs(chosen)
+    }
+
+    private static func runs(_ chosen: [(String, CGRect, Int)]) -> [TextBlock] {
+        guard let first = chosen.first else { return [] }
+        var blocks: [TextBlock] = []
+        var text = first.0
+        var bounds = first.1
+        var last = first.2
+        for item in chosen.dropFirst() {
+            if item.2 == last + 1 {
+                text += " \(item.0)"
+                bounds = bounds.union(item.1)
+            } else {
+                blocks.append(TextBlock(text: text, bounds: bounds))
+                text = item.0
+                bounds = item.1
+            }
+            last = item.2
+        }
+        blocks.append(TextBlock(text: text, bounds: bounds))
+        return blocks
     }
 
     private static func isSecure(_ element: AXUIElement) -> Bool {
@@ -454,8 +667,11 @@ enum ScreenReader {
 
     private static func copyString(_ element: AXUIElement, _ attribute: String) -> String? {
         var value: CFTypeRef?
-        guard AXUIElementCopyAttributeValue(element, attribute as CFString, &value) == .success else { return nil }
-        return value as? String
+        guard AXUIElementCopyAttributeValue(element, attribute as CFString, &value) == .success, let value else { return nil }
+        if let text = value as? String { return text }
+        guard CFGetTypeID(value) == CFAttributedStringGetTypeID() else { return nil }
+        let attributed = value as! CFAttributedString
+        return CFAttributedStringGetString(attributed) as String
     }
 
     private static func copyBool(_ element: AXUIElement, _ attribute: String) -> Bool {
@@ -495,11 +711,13 @@ enum ScreenReader {
 
     static func word(at point: CGPoint) -> TextBlock? {
         AXUIElementSetMessagingTimeout(AXUIElementCreateSystemWide(), 0.4)
+        if let block = wordOnMenu(at: point) { return block }
         if let block = wordInFrontWindow(at: point) { return block }
         switch wordNow(at: point) {
         case .block(let block):
             return block
         case .missed, .empty:
+            if let block = wordFromTextRanges(at: point) { return block }
             if let hit = copyHit(at: point) {
                 var pid: pid_t = 0
                 AXUIElementGetPid(hit, &pid)
@@ -553,6 +771,147 @@ enum ScreenReader {
         return hypot(dx, dy)
     }
 
+    private static func wordFromTextRanges(at point: CGPoint) -> TextBlock? {
+        guard let window = frontWindow(containing: point) else { return nil }
+        let app = AXUIElementCreateApplication(window.pid)
+        AXUIElementSetMessagingTimeout(app, 0.2)
+        AXUIElementSetAttributeValue(app, "AXManualAccessibility" as CFString, kCFBooleanTrue)
+        var checks = 0
+        for element in copyWindows(app) {
+            guard checks < 24 else { return nil }
+            guard let frame = copyFrame(element), frame.insetBy(dx: -4, dy: -4).contains(point) else { continue }
+            let overlap = frame.intersection(window.bounds)
+            let aligned = !overlap.isNull && overlap.width * overlap.height > min(frame.width * frame.height, window.bounds.width * window.bounds.height) * 0.45
+            if !aligned { continue }
+            var budget = 160
+            if let block = rangeWord(in: element, at: point, checks: &checks, budget: &budget, depth: 0) {
+                return block
+            }
+        }
+        return nil
+    }
+
+    private static func frontWindow(containing point: CGPoint) -> VisibleWindow? {
+        guard let info = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] else {
+            return nil
+        }
+        let screens = NSScreen.screens.map { Coordinates.appKitToAX($0.frame, primaryHeight: Coordinates.primaryHeight) }
+        let mine = getpid()
+        for item in info {
+            let layer = number(item[kCGWindowLayer as String]) ?? 0
+            if layer < 0 { continue }
+            guard let pid = number(item[kCGWindowOwnerPID as String]).map({ pid_t($0) }), pid != 0, pid != mine else { continue }
+            let alpha = (item[kCGWindowAlpha as String] as? NSNumber)?.doubleValue ?? 1
+            if alpha < 0.05 { continue }
+            guard let bounds = item[kCGWindowBounds as String] as? NSDictionary else { continue }
+            var rect = CGRect.zero
+            guard CGRectMakeWithDictionaryRepresentation(bounds, &rect), rect.insetBy(dx: -2, dy: -2).contains(point) else { continue }
+            let large = rect.width > 1000 || rect.height > 720 || coversScreen(rect, screens: screens)
+            if large && layer >= 20 { continue }
+            let id = CGWindowID(number(item[kCGWindowNumber as String]) ?? 0)
+            return VisibleWindow(pid: pid, bounds: rect, id: id, readable: true)
+        }
+        return nil
+    }
+
+    private static func rangeWord(in element: AXUIElement, at point: CGPoint, checks: inout Int, budget: inout Int, depth: Int) -> TextBlock? {
+        if depth > 24 || budget <= 0 || checks >= 24 { return nil }
+        budget -= 1
+        if isSecure(element) { return nil }
+        var inside: [AXUIElement] = []
+        for child in copyChildren(element) {
+            guard budget > 0, checks < 24 else { break }
+            if let frame = copyFrame(child), frame.insetBy(dx: -8, dy: -8).contains(point) {
+                inside.append(child)
+                continue
+            }
+            if let block = wordIfTextRange(child, at: point, checks: &checks) { return block }
+        }
+        for child in inside {
+            if let block = rangeWord(in: child, at: point, checks: &checks, budget: &budget, depth: depth + 1) {
+                return block
+            }
+        }
+        return wordIfTextRange(element, at: point, checks: &checks)
+    }
+
+    private static func wordIfTextRange(_ element: AXUIElement, at point: CGPoint, checks: inout Int) -> TextBlock? {
+        let role = copyString(element, kAXRoleAttribute) ?? ""
+        guard role == kAXTextAreaRole || role == kAXStaticTextRole || role == kAXTextFieldRole || role == "AXHeading" || role == "AXLink" || role == "AXUnknown" else {
+            return nil
+        }
+        guard checks < 24, let raw = wordString(element) else { return nil }
+        let length = (raw as NSString).length
+        guard length > 0, length <= 4000 else { return nil }
+        checks += 1
+        guard case .rect(let rect) = rangeBounds(element, NSRange(location: 0, length: length)),
+              rect.insetBy(dx: -3, dy: -3).contains(point) else { return nil }
+        if case .block(let block) = word(from: element, at: point) { return block }
+        var nearest: (String, CGRect, CGFloat)?
+        for token in wordTokens(raw) {
+            guard case .rect(let wordRect) = rangeBounds(element, token.range) else { continue }
+            let word = normalizeScreenText(token.text)
+            guard word.contains(where: { $0.isLetter }) else { continue }
+            let dx = max(wordRect.minX - point.x, point.x - wordRect.maxX, 0)
+            let dy = max(wordRect.minY - point.y, point.y - wordRect.maxY, 0)
+            let distance = hypot(dx, dy)
+            if nearest == nil || distance < nearest!.2 {
+                nearest = (word, wordRect, distance)
+            }
+        }
+        guard let nearest else { return nil }
+        return TextBlock(text: nearest.0, bounds: nearest.1)
+    }
+
+    private static func wordOnMenu(at point: CGPoint) -> TextBlock? {
+        guard let hit = copyHit(at: point) else { return nil }
+        var pid: pid_t = 0
+        AXUIElementGetPid(hit, &pid)
+        if pid == 0 || pid == getpid() || isSecure(hit) { return nil }
+        if let block = menuItem(at: point, under: hit) { return block }
+        let app = AXUIElementCreateApplication(pid)
+        AXUIElementSetMessagingTimeout(app, 0.25)
+        var focused: CFTypeRef?
+        if AXUIElementCopyAttributeValue(app, kAXFocusedUIElementAttribute as CFString, &focused) == .success,
+           let focused,
+           CFGetTypeID(focused) == AXUIElementGetTypeID(),
+           let block = menuItem(at: point, under: focused as! AXUIElement) {
+            return block
+        }
+        for window in copyWindows(app) {
+            guard let frame = copyFrame(window), frame.insetBy(dx: -12, dy: -12).contains(point) else { continue }
+            if let block = menuItem(at: point, under: window) { return block }
+        }
+        return nil
+    }
+
+    private static func menuItem(at point: CGPoint, under element: AXUIElement) -> TextBlock? {
+        var best: (TextBlock, CGFloat)?
+        var budget = 400
+        func visit(_ node: AXUIElement, depth: Int) {
+            if depth > 22 || budget <= 0 { return }
+            budget -= 1
+            let role = copyString(node, kAXRoleAttribute) ?? ""
+            let frame = copyFrame(node)
+            let contains = frame?.insetBy(dx: -4, dy: -4).contains(point) ?? false
+            if contains, role == kAXMenuItemRole || role == "AXMenuButton",
+               case .block(let block) = word(from: node, at: point) {
+                let area = (frame?.width ?? 1) * (frame?.height ?? 1)
+                if best == nil || area < best!.1 {
+                    best = (block, area)
+                }
+            }
+            if let frame, !contains, frame.width > 4, frame.height > 4, role != kAXMenuRole, role != "AXMenuBar" {
+                return
+            }
+            for child in copyChildren(node) {
+                visit(child, depth: depth + 1)
+            }
+        }
+        visit(element, depth: 0)
+        return best?.0
+    }
+
     private static func wordInFrontWindow(at point: CGPoint) -> TextBlock? {
         guard let info = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] else {
             return nil
@@ -580,12 +939,17 @@ enum ScreenReader {
         AXUIElementSetAttributeValue(app, "AXManualAccessibility" as CFString, kCFBooleanTrue)
         let windows = copyWindows(app)
         let roots = windows.isEmpty ? copyChildren(app) : windows
+        let popup = bounds.width <= 800 && bounds.height <= 640
         for root in roots {
             guard let frame = copyFrame(root) else { continue }
             let hit = frame.insetBy(dx: -8, dy: -8).contains(point)
             let overlap = frame.intersection(bounds)
             let aligned = !overlap.isNull && overlap.width * overlap.height > min(frame.width * frame.height, bounds.width * bounds.height) * 0.45
-            if !hit && !aligned { continue }
+            if popup {
+                if !aligned { continue }
+            } else if !hit && !aligned {
+                continue
+            }
             guard let element = smallestText(in: root, at: point, depth: 0, budget: 500) else { continue }
             if case .block(let block) = word(from: element, at: point) { return block }
         }
@@ -625,6 +989,8 @@ enum ScreenReader {
         guard let raw = wordString(element) else { return .empty }
         let length = (raw as NSString).length
         guard length > 0 else { return .empty }
+        if let block = nearestRangedWord(raw, element: element, at: point) { return .block(block) }
+        if let block = childRangedWord(in: element, at: point) { return .block(block) }
         if case .unsupported = rangeBounds(element, NSRange(location: 0, length: 1)) {
             return measuredWord(raw, element: element, at: point)
         }
@@ -633,14 +999,49 @@ enum ScreenReader {
            let block = block(for: token, element: element, at: point) {
             return .block(block)
         }
-        if length <= 600, let token = wordTokens(raw).first(where: { token in
-            guard case .rect(let rect) = rangeBounds(element, token.range) else { return false }
-            return rect.insetBy(dx: -2, dy: -2).contains(point)
-        }), let block = block(for: token, element: element, at: point) {
-            return .block(block)
-        }
         if let block = wordOnLine(raw, element: element, at: point) { return .block(block) }
         return measuredWord(raw, element: element, at: point)
+    }
+
+    private static func nearestRangedWord(_ raw: String, element: AXUIElement, at point: CGPoint) -> TextBlock? {
+        let tokens = wordTokens(raw)
+        guard !tokens.isEmpty, tokens.count <= 80 else { return nil }
+        var best: (String, CGRect, CGFloat)?
+        for token in tokens {
+            guard case .rect(let rect) = rangeBounds(element, token.range) else { continue }
+            let word = normalizeScreenText(token.text)
+            guard word.contains(where: { $0.isLetter }) else { continue }
+            let dx = max(rect.minX - point.x, point.x - rect.maxX, 0)
+            let dy = max(rect.minY - point.y, point.y - rect.maxY, 0)
+            let distance = hypot(dx, dy)
+            guard distance <= 8 else { continue }
+            if best == nil || distance < best!.2 {
+                best = (word, rect, distance)
+            }
+        }
+        guard let best else { return nil }
+        return TextBlock(text: best.0, bounds: best.1)
+    }
+
+    private static func childRangedWord(in element: AXUIElement, at point: CGPoint) -> TextBlock? {
+        var budget = 24
+        func visit(_ node: AXUIElement, depth: Int) -> TextBlock? {
+            if depth > 8 || budget <= 0 { return nil }
+            for child in copyChildren(node) {
+                budget -= 1
+                if budget <= 0 { return nil }
+                if let frame = copyFrame(child), frame.width > 4, frame.height > 4,
+                   !frame.insetBy(dx: -8, dy: -8).contains(point) {
+                    continue
+                }
+                if let raw = wordString(child), let block = nearestRangedWord(raw, element: child, at: point) {
+                    return block
+                }
+                if let block = visit(child, depth: depth + 1) { return block }
+            }
+            return nil
+        }
+        return visit(element, depth: 0)
     }
 
     private static func wordString(_ element: AXUIElement) -> String? {
@@ -706,19 +1107,12 @@ enum ScreenReader {
     }
 
     private static func block(for token: WordToken, element: AXUIElement, at point: CGPoint) -> TextBlock? {
-        let rect: CGRect
-        if case .rect(let value) = rangeBounds(element, token.range) {
-            rect = value
-        } else if let frame = copyFrame(element) {
-            rect = frame
-        } else {
-            return nil
-        }
+        guard case .rect(let rect) = rangeBounds(element, token.range) else { return nil }
         let word = normalizeScreenText(token.text)
-        guard word.contains(where: { $0.isLetter }), rect.width >= 1, rect.height >= 1 else { return nil }
-        if !rect.insetBy(dx: -4, dy: -4).contains(point), let frame = copyFrame(element), !frame.contains(point) {
-            return nil
-        }
+        guard word.contains(where: { $0.isLetter }) else { return nil }
+        let dx = max(rect.minX - point.x, point.x - rect.maxX, 0)
+        let dy = max(rect.minY - point.y, point.y - rect.maxY, 0)
+        guard hypot(dx, dy) <= 8 else { return nil }
         return TextBlock(text: word, bounds: rect)
     }
 
@@ -740,7 +1134,7 @@ enum ScreenReader {
     }
 
     private static func smallestText(in element: AXUIElement, at point: CGPoint, depth: Int, budget: inout Int) -> AXUIElement? {
-        if depth > 10 || budget <= 0 { return nil }
+        if depth > 18 || budget <= 0 { return nil }
         budget -= 1
         var best: AXUIElement?
         var bestArea = CGFloat.greatestFiniteMagnitude
@@ -905,52 +1299,102 @@ enum ScreenReader {
         let attributes: [NSAttributedString.Key: Any] = [.font: font]
         let ns = raw as NSString
         let natural = ns.size(withAttributes: attributes).width
+        if natural > frame.width * 1.15 {
+            return wrappedWord(raw, tokens: tokens, in: frame, at: point)
+        }
         var originX = frame.minX
         if role == kAXMenuItemRole, natural + 18 < frame.width - 4 {
             originX += 18
         } else if natural < frame.width * 0.9 {
             originX += (frame.width - natural) / 2
         }
+        var nearest: (String, CGRect, CGFloat)?
         for token in tokens {
             let prefix = ns.substring(with: NSRange(location: 0, length: token.range.location))
             let prefixWidth = (prefix as NSString).size(withAttributes: attributes).width
             let wordWidth = max((token.text as NSString).size(withAttributes: attributes).width, 4)
             let rect = CGRect(x: originX + prefixWidth, y: frame.minY, width: wordWidth, height: frame.height)
+            let word = normalizeScreenText(token.text)
+            guard word.contains(where: { $0.isLetter }) else { continue }
             if rect.insetBy(dx: -2, dy: -2).contains(point) {
-                let word = normalizeScreenText(token.text)
-                guard word.contains(where: { $0.isLetter }) else { continue }
                 return .block(TextBlock(text: word, bounds: rect))
             }
+            let dx = max(rect.minX - point.x, point.x - rect.maxX, 0)
+            let dy = max(rect.minY - point.y, point.y - rect.maxY, 0)
+            let distance = hypot(dx, dy)
+            if nearest == nil || distance < nearest!.2 {
+                nearest = (word, rect, distance)
+            }
+        }
+        if let nearest, frame.insetBy(dx: -8, dy: -8).contains(point) {
+            return .block(TextBlock(text: nearest.0, bounds: nearest.1))
         }
         return .missed
     }
 
+    private static func wrappedWord(_ raw: String, tokens: [WordToken], in frame: CGRect, at point: CGPoint) -> WordHit {
+        let ns = raw as NSString
+        var size: CGFloat = 22
+        var placed: [(String, CGRect)] = []
+        while size >= 10 {
+            placed = placeWords(tokens, ns, size: size, in: frame)
+            let bottom = placed.map { $0.1.maxY }.max() ?? frame.maxY
+            if bottom <= frame.maxY + 1 || size <= 10 { break }
+            size -= 0.5
+        }
+        var nearest: (String, CGRect, CGFloat)?
+        for item in placed {
+            if item.1.insetBy(dx: -2, dy: -2).contains(point) {
+                return .block(TextBlock(text: item.0, bounds: item.1))
+            }
+            let dx = max(item.1.minX - point.x, point.x - item.1.maxX, 0)
+            let dy = max(item.1.minY - point.y, point.y - item.1.maxY, 0)
+            let distance = hypot(dx, dy)
+            if nearest == nil || distance < nearest!.2 {
+                nearest = (item.0, item.1, distance)
+            }
+        }
+        if let nearest, nearest.2 <= 8, frame.insetBy(dx: -8, dy: -8).contains(point) {
+            return .block(TextBlock(text: nearest.0, bounds: nearest.1))
+        }
+        return .missed
+    }
+
+    private static func placeWords(_ tokens: [WordToken], _ ns: NSString, size: CGFloat, in frame: CGRect) -> [(String, CGRect)] {
+        let font = NSFont.systemFont(ofSize: size)
+        let attributes: [NSAttributedString.Key: Any] = [.font: font]
+        let lineHeight = max(font.ascender - font.descender + font.leading, size + 2)
+        var x = frame.minX
+        var y = frame.minY
+        var cursor = 0
+        var placed: [(String, CGRect)] = []
+        for token in tokens {
+            if token.range.location > cursor {
+                let gap = ns.substring(with: NSRange(location: cursor, length: token.range.location - cursor))
+                if gap.contains(where: { $0.isNewline }) {
+                    x = frame.minX
+                    y += lineHeight
+                } else {
+                    x += (gap as NSString).size(withAttributes: attributes).width
+                }
+            }
+            let word = normalizeScreenText(token.text)
+            let width = max((word as NSString).size(withAttributes: attributes).width, 4)
+            if x > frame.minX + 1, x + width > frame.maxX + 1 {
+                x = frame.minX
+                y += lineHeight
+            }
+            if word.contains(where: { $0.isLetter }) {
+                placed.append((word, CGRect(x: x, y: y, width: width, height: lineHeight)))
+            }
+            x += width
+            cursor = token.range.location + token.range.length
+        }
+        return placed
+    }
+
     private static func rawString(_ element: AXUIElement) -> String? {
-        let role = copyString(element, kAXRoleAttribute) ?? ""
-        let values: [String?]
-        switch role {
-        case kAXStaticTextRole, "AXHeading", "AXLink", "AXUnknown":
-            values = [
-                copyString(element, kAXValueAttribute),
-                copyString(element, kAXTitleAttribute),
-                copyString(element, kAXDescriptionAttribute),
-            ]
-        case kAXTextFieldRole, kAXTextAreaRole, "AXSearchField", "AXComboBox":
-            values = [copyString(element, kAXValueAttribute)]
-        case kAXButtonRole, kAXCheckBoxRole, kAXRadioButtonRole, kAXPopUpButtonRole, "AXMenuButton", kAXMenuItemRole, "AXCell", "AXRow":
-            values = [
-                copyString(element, kAXTitleAttribute),
-                copyString(element, kAXValueAttribute),
-                copyString(element, kAXDescriptionAttribute),
-            ]
-        default:
-            return nil
-        }
-        for value in values {
-            let text = value ?? ""
-            if text.contains(where: { $0.isLetter }) { return text }
-        }
-        return nil
+        elementString(element)
     }
 
     private static func number(_ value: Any?) -> Int? {

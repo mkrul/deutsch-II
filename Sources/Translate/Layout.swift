@@ -78,7 +78,9 @@ enum LanguageFilter {
         let german = hypotheses[.german] ?? 0
         let english = hypotheses[.english] ?? 0
         if hypotheses.max(by: { $0.value < $1.value })?.key == .german { return true }
-        return german > 0 && german >= english
+        if german > 0 && german >= english { return true }
+        let confidence = hypotheses.values.max() ?? 0
+        return german >= 0.15 && confidence < 0.5 && german + 0.2 >= english
     }
 
     private static func hypotheses(for text: String) -> [NLLanguage: Double] {

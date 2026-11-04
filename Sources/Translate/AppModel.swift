@@ -637,12 +637,13 @@ final class AppModel: NSObject, ObservableObject, NSMenuDelegate {
         }.value
         guard token == generation, !Task.isCancelled else { return }
         if captured.0.isEmpty {
-            showErrorIfCurrent(token, "No readable text \(place)")
+            showErrorIfCurrent(token, word ? "No readable text" : "No readable text \(place)")
             return
         }
         let blocks = captured.1
+        let missing = word ? "Nothing to translate" : "No German to translate \(place)"
         if blocks.isEmpty {
-            showErrorIfCurrent(token, "No German to translate \(place)")
+            showErrorIfCurrent(token, missing)
             return
         }
         let unique = Array(Set(blocks.map(\.text)))
@@ -674,16 +675,17 @@ final class AppModel: NSObject, ObservableObject, NSMenuDelegate {
         let visible: [TranslatedBlock] = blocks.compactMap { block in
             guard let english = outcome.results[block.text]?.trimmingCharacters(in: .whitespacesAndNewlines),
                   !english.isEmpty,
-                  english.caseInsensitiveCompare(block.text) != .orderedSame,
-                  !LanguageFilter.readsAsGerman(english) else { return nil }
+                  english.caseInsensitiveCompare(block.text) != .orderedSame else { return nil }
+            let oneWord = english.split(whereSeparator: \.isWhitespace).count < 2
+            if !oneWord && LanguageFilter.readsAsGerman(english) { return nil }
             return TranslatedBlock(source: block.text, english: english, bounds: block.bounds)
         }
         if visible.isEmpty {
-            showErrorIfCurrent(token, "No German to translate \(place)")
+            showErrorIfCurrent(token, missing)
             return
         }
         guard token == generation, !Task.isCancelled else { return }
-        overlay.show(items: visible, anchor: statusAnchor())
+        overlay.show(items: visible, anchor: statusAnchor(near: mouse))
         if !overlay.isOpen {
             showErrorIfCurrent(token, "Could not draw the translation")
         }
@@ -1024,13 +1026,24 @@ final class AppModel: NSObject, ObservableObject, NSMenuDelegate {
         }
     }
 
-    private func statusAnchor() -> NSRect {
-        if let button = statusItem?.button, let window = button.window {
-            return window.convertToScreen(button.convert(button.bounds, to: nil))
+    private func statusAnchor(near mouse: NSPoint) -> NSRect {
+        let screen = NSScreen.screens.first { NSMouseInRect(mouse, $0.frame, false) } ?? NSScreen.main
+        guard let screen else {
+            return NSRect(x: mouse.x, y: mouse.y, width: 0, height: 0)
         }
-        let screen = NSScreen.screens.first { $0.frame.contains(NSEvent.mouseLocation) } ?? NSScreen.main
-        let frame = screen?.frame ?? .zero
-        return NSRect(x: frame.midX, y: frame.maxY, width: 0, height: 0)
+        guard let button = statusItem?.button, let window = button.window else {
+            let visible = screen.visibleFrame
+            return NSRect(x: visible.maxX - 28, y: visible.maxY, width: 24, height: 0)
+        }
+        let icon = window.convertToScreen(button.convert(button.bounds, to: nil))
+        if screen.frame.intersects(icon) {
+            return icon
+        }
+        let iconScreen = NSScreen.screens.first { $0.frame.intersects(icon) }
+        let fromRight = (iconScreen?.frame.maxX ?? icon.midX) - icon.midX
+        let midX = screen.frame.maxX - fromRight
+        let y = min(screen.visibleFrame.maxY, screen.frame.maxY - 1)
+        return NSRect(x: midX - icon.width / 2, y: y, width: icon.width, height: 0)
     }
 
     @objc private func statusAction() {

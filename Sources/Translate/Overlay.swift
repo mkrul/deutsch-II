@@ -284,13 +284,8 @@ final class StatusHUD {
     func show(_ text: String, color: NSColor) {
         guard let screen = screen() else { return }
         label.stringValue = text
-        let font = label.font ?? NSFont.systemFont(ofSize: 14, weight: .semibold)
         let maxWidth = min(420, screen.visibleFrame.width - 32)
-        let bounds = (text as NSString).boundingRect(
-            with: NSSize(width: maxWidth - 28, height: 200),
-            options: [.usesLineFragmentOrigin, .usesFontLeading],
-            attributes: [.font: font]
-        )
+        let bounds = label.cell?.cellSize(forBounds: NSRect(x: 0, y: 0, width: maxWidth - 28, height: 200)) ?? .zero
         let width = min(maxWidth, max(52, ceil(bounds.width) + 28))
         let height = max(32, ceil(bounds.height) + 16)
         let frame = NSRect(
