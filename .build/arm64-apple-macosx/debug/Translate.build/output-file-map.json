@@ -1,0 +1,82 @@
+{
+  "": {
+    "swift-dependencies": "/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/master.swiftdeps"
+  },
+  "/Users/newaardvark/Desktop/projects/deutsch II/Sources/Translate/AppDelegate.swift": {
+    "dependencies": "/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/AppDelegate.d",
+    "object": "/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/AppDelegate.swift.o",
+    "swiftmodule": "/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/AppDelegate~partial.swiftmodule",
+    "swift-dependencies": "/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/AppDelegate.swiftdeps",
+    "diagnostics": "/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/AppDelegate.dia"
+  },
+  "/Users/newaardvark/Desktop/projects/deutsch II/Sources/Translate/AppModel.swift": {
+    "dependencies": "/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/AppModel.d",
+    "object": "/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/AppModel.swift.o",
+    "swiftmodule": "/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/AppModel~partial.swiftmodule",
+    "swift-dependencies": "/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/AppModel.swiftdeps",
+    "diagnostics": "/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/AppModel.dia"
+  },
+  "/Users/newaardvark/Desktop/projects/deutsch II/Sources/Translate/Hotkey.swift": {
+    "dependencies": "/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/Hotkey.d",
+    "object": "/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/Hotkey.swift.o",
+    "swiftmodule": "/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/Hotkey~partial.swiftmodule",
+    "swift-dependencies": "/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/Hotkey.swiftdeps",
+    "diagnostics": "/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/Hotkey.dia"
+  },
+  "/Users/newaardvark/Desktop/projects/deutsch II/Sources/Translate/Icon.swift": {
+    "dependencies": "/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/Icon.d",
+    "object": "/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/Icon.swift.o",
+    "swiftmodule": "/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/Icon~partial.swiftmodule",
+    "swift-dependencies": "/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/Icon.swiftdeps",
+    "diagnostics": "/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/Icon.dia"
+  },
+  "/Users/newaardvark/Desktop/projects/deutsch II/Sources/Translate/Layout.swift": {
+    "dependencies": "/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/Layout.d",
+    "object": "/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/Layout.swift.o",
+    "swiftmodule": "/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/Layout~partial.swiftmodule",
+    "swift-dependencies": "/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/Layout.swiftdeps",
+    "diagnostics": "/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/Layout.dia"
+  },
+  "/Users/newaardvark/Desktop/projects/deutsch II/Sources/Translate/Overlay.swift": {
+    "dependencies": "/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/Overlay.d",
+    "object": "/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/Overlay.swift.o",
+    "swiftmodule": "/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/Overlay~partial.swiftmodule",
+    "swift-dependencies": "/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/Overlay.swiftdeps",
+    "diagnostics": "/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/Overlay.dia"
+  },
+  "/Users/newaardvark/Desktop/projects/deutsch II/Sources/Translate/Prefs.swift": {
+    "dependencies": "/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/Prefs.d",
+    "object": "/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/Prefs.swift.o",
+    "swiftmodule": "/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/Prefs~partial.swiftmodule",
+    "swift-dependencies": "/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/Prefs.swiftdeps",
+    "diagnostics": "/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/Prefs.dia"
+  },
+  "/Users/newaardvark/Desktop/projects/deutsch II/Sources/Translate/ScreenReader.swift": {
+    "dependencies": "/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/ScreenReader.d",
+    "object": "/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/ScreenReader.swift.o",
+    "swiftmodule": "/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/ScreenReader~partial.swiftmodule",
+    "swift-dependencies": "/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/ScreenReader.swiftdeps",
+    "diagnostics": "/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/ScreenReader.dia"
+  },
+  "/Users/newaardvark/Desktop/projects/deutsch II/Sources/Translate/SettingsView.swift": {
+    "dependencies": "/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/SettingsView.d",
+    "object": "/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/SettingsView.swift.o",
+    "swiftmodule": "/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/SettingsView~partial.swiftmodule",
+    "swift-dependencies": "/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/SettingsView.swiftdeps",
+    "diagnostics": "/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/SettingsView.dia"
+  },
+  "/Users/newaardvark/Desktop/projects/deutsch II/Sources/Translate/Speech.swift": {
+    "dependencies": "/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/Speech.d",
+    "object": "/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/Speech.swift.o",
+    "swiftmodule": "/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/Speech~partial.swiftmodule",
+    "swift-dependencies": "/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/Speech.swiftdeps",
+    "diagnostics": "/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/Speech.dia"
+  },
+  "/Users/newaardvark/Desktop/projects/deutsch II/Sources/Translate/main.swift": {
+    "dependencies": "/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/main.d",
+    "object": "/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/main.swift.o",
+    "swiftmodule": "/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/main~partial.swiftmodule",
+    "swift-dependencies": "/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/main.swiftdeps",
+    "diagnostics": "/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/main.dia"
+  }
+}

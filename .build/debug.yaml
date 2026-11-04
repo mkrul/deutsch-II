@@ -1,0 +1,81 @@
+client:
+  name: basic
+  file-system: device-agnostic
+tools: {}
+targets:
+  "PackageStructure": ["<PackageStructure>"]
+  "Translate-arm64-apple-macosx26.0-debug.exe": ["<Translate-arm64-apple-macosx26.0-debug.exe>"]
+  "Translate-arm64-apple-macosx26.0-debug.module": ["<Translate-arm64-apple-macosx26.0-debug.module>"]
+  "main": ["<Translate-arm64-apple-macosx26.0-debug.exe>","<Translate-arm64-apple-macosx26.0-debug.module>"]
+  "test": ["<Translate-arm64-apple-macosx26.0-debug.exe>","<Translate-arm64-apple-macosx26.0-debug.module>"]
+default: "main"
+nodes:
+  "/Users/newaardvark/Desktop/projects/deutsch II/Sources/Translate/":
+    is-directory-structure: true
+    content-exclusion-patterns: [".git",".build"]
+  "/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate":
+    is-mutated: true
+commands:
+  "/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate-entitlement.plist":
+    tool: write-auxiliary-file
+    inputs: ["<entitlement-plist>","<com.apple.security.get-task-allow>"]
+    outputs: ["/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate-entitlement.plist"]
+    description: "Write auxiliary file /Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate-entitlement.plist"
+
+  "/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/sources":
+    tool: write-auxiliary-file
+    inputs: ["<sources-file-list>","/Users/newaardvark/Desktop/projects/deutsch II/Sources/Translate/AppDelegate.swift","/Users/newaardvark/Desktop/projects/deutsch II/Sources/Translate/AppModel.swift","/Users/newaardvark/Desktop/projects/deutsch II/Sources/Translate/Hotkey.swift","/Users/newaardvark/Desktop/projects/deutsch II/Sources/Translate/Icon.swift","/Users/newaardvark/Desktop/projects/deutsch II/Sources/Translate/Layout.swift","/Users/newaardvark/Desktop/projects/deutsch II/Sources/Translate/Overlay.swift","/Users/newaardvark/Desktop/projects/deutsch II/Sources/Translate/Prefs.swift","/Users/newaardvark/Desktop/projects/deutsch II/Sources/Translate/ScreenReader.swift","/Users/newaardvark/Desktop/projects/deutsch II/Sources/Translate/SettingsView.swift","/Users/newaardvark/Desktop/projects/deutsch II/Sources/Translate/Speech.swift","/Users/newaardvark/Desktop/projects/deutsch II/Sources/Translate/main.swift"]
+    outputs: ["/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/sources"]
+    description: "Write auxiliary file /Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/sources"
+
+  "/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.product/Objects.LinkFileList":
+    tool: write-auxiliary-file
+    inputs: ["<link-file-list>","/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/AppDelegate.swift.o","/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/AppModel.swift.o","/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/Hotkey.swift.o","/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/Icon.swift.o","/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/Layout.swift.o","/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/Overlay.swift.o","/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/Prefs.swift.o","/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/ScreenReader.swift.o","/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/SettingsView.swift.o","/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/Speech.swift.o","/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/main.swift.o"]
+    outputs: ["/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.product/Objects.LinkFileList"]
+    description: "Write auxiliary file /Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.product/Objects.LinkFileList"
+
+  "/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt":
+    tool: write-auxiliary-file
+    inputs: ["<swift-get-version>","/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc"]
+    outputs: ["/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt"]
+    always-out-of-date: "true"
+    description: "Write auxiliary file /Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt"
+
+  "<Translate-arm64-apple-macosx26.0-debug.exe>":
+    tool: phony
+    inputs: ["<Translate-arm64-apple-macosx26.0-debug.exe-CodeSigning>"]
+    outputs: ["<Translate-arm64-apple-macosx26.0-debug.exe>"]
+
+  "<Translate-arm64-apple-macosx26.0-debug.module>":
+    tool: phony
+    inputs: ["/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/AppDelegate.swift.o","/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/AppModel.swift.o","/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/Hotkey.swift.o","/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/Icon.swift.o","/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/Layout.swift.o","/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/Overlay.swift.o","/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/Prefs.swift.o","/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/ScreenReader.swift.o","/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/SettingsView.swift.o","/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/Speech.swift.o","/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/main.swift.o","/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Modules/Translate.swiftmodule"]
+    outputs: ["<Translate-arm64-apple-macosx26.0-debug.module>"]
+
+  "C.Translate-arm64-apple-macosx26.0-debug.exe":
+    tool: shell
+    inputs: ["/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/AppDelegate.swift.o","/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/AppModel.swift.o","/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/Hotkey.swift.o","/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/Icon.swift.o","/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/Layout.swift.o","/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/Overlay.swift.o","/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/Prefs.swift.o","/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/ScreenReader.swift.o","/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/SettingsView.swift.o","/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/Speech.swift.o","/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/main.swift.o","/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.product/Objects.LinkFileList"]
+    outputs: ["/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate"]
+    description: "Linking ./.build/arm64-apple-macosx/debug/Translate"
+    args: ["/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc","-L","/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug","-o","/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate","-module-name","Translate","-Xlinker","-no_warn_duplicate_libraries","-emit-executable","-Xlinker","-alias","-Xlinker","_Translate_main","-Xlinker","_main","-Xlinker","-rpath","-Xlinker","@loader_path","@/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.product/Objects.LinkFileList","-target","arm64-apple-macosx26.0","-Xlinker","-add_ast_path","-Xlinker","/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Modules/Translate.swiftmodule","-plugin-path","/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing","-sdk","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.0.sdk","-F","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks","-F","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks","-I","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib","-L","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib","-g"]
+
+  "C.Translate-arm64-apple-macosx26.0-debug.exe-entitlements":
+    tool: shell
+    inputs: ["/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate","/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate-entitlement.plist"]
+    outputs: ["<Translate-arm64-apple-macosx26.0-debug.exe-CodeSigning>"]
+    description: "Applying debug entitlements to ./.build/arm64-apple-macosx/debug/Translate"
+    args: ["codesign","--force","--sign","-","--entitlements","/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate-entitlement.plist","/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate"]
+
+  "C.Translate-arm64-apple-macosx26.0-debug.module":
+    tool: shell
+    inputs: ["/Users/newaardvark/Desktop/projects/deutsch II/Sources/Translate/AppDelegate.swift","/Users/newaardvark/Desktop/projects/deutsch II/Sources/Translate/AppModel.swift","/Users/newaardvark/Desktop/projects/deutsch II/Sources/Translate/Hotkey.swift","/Users/newaardvark/Desktop/projects/deutsch II/Sources/Translate/Icon.swift","/Users/newaardvark/Desktop/projects/deutsch II/Sources/Translate/Layout.swift","/Users/newaardvark/Desktop/projects/deutsch II/Sources/Translate/Overlay.swift","/Users/newaardvark/Desktop/projects/deutsch II/Sources/Translate/Prefs.swift","/Users/newaardvark/Desktop/projects/deutsch II/Sources/Translate/ScreenReader.swift","/Users/newaardvark/Desktop/projects/deutsch II/Sources/Translate/SettingsView.swift","/Users/newaardvark/Desktop/projects/deutsch II/Sources/Translate/Speech.swift","/Users/newaardvark/Desktop/projects/deutsch II/Sources/Translate/main.swift","/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt","/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/sources"]
+    outputs: ["/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/AppDelegate.swift.o","/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/AppModel.swift.o","/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/Hotkey.swift.o","/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/Icon.swift.o","/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/Layout.swift.o","/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/Overlay.swift.o","/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/Prefs.swift.o","/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/ScreenReader.swift.o","/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/SettingsView.swift.o","/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/Speech.swift.o","/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/main.swift.o","/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Modules/Translate.swiftmodule"]
+    description: "Compiling Swift Module 'Translate' (11 sources)"
+    args: ["/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc","-module-name","Translate","-emit-dependencies","-emit-module","-emit-module-path","/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Modules/Translate.swiftmodule","-output-file-map","/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/output-file-map.json","-incremental","-c","@/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate.build/sources","-I","/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Modules","-target","arm64-apple-macosx26.0","-incremental","-enable-batch-mode","-serialize-diagnostics","-index-store-path","/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/index/store","-Onone","-enable-testing","-j10","-DSWIFT_PACKAGE","-DDEBUG","-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE","-module-cache-path","/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/ModuleCache","-parseable-output","-Xfrontend","-entry-point-function-name","-Xfrontend","Translate_main","-swift-version","5","-plugin-path","/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing","-sdk","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.0.sdk","-F","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks","-F","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks","-I","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib","-L","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib","-g","-Xcc","-isysroot","-Xcc","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.0.sdk","-Xcc","-F","-Xcc","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks","-Xcc","-F","-Xcc","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks","-Xcc","-fPIC","-Xcc","-g","-package-name","deutsch_ii"]
+
+  "PackageStructure":
+    tool: package-structure-tool
+    inputs: ["/Users/newaardvark/Desktop/projects/deutsch II/Sources/Translate/","/Users/newaardvark/Desktop/projects/deutsch II/Package.swift","/Users/newaardvark/Desktop/projects/deutsch II/Package.resolved"]
+    outputs: ["<PackageStructure>"]
+    description: "Planning build"
+    allow-missing-inputs: true
+

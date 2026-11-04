@@ -1,0 +1,5 @@
+---
+triple:          'arm64-apple-darwin'
+binary-path:     '/Users/newaardvark/Desktop/projects/deutsch II/.build/arm64-apple-macosx/debug/Translate'
+relocations:     []
+...
